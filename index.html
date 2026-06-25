@@ -653,35 +653,33 @@ async function generateZip() {
   var a = document.createElement('a');
   a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
 
-  // Envoi ZIP + fiche par email via fetch (https OK, pas de CORS)
+  // Envoi via formulaire dans nouvel onglet (seule méthode fiable avec Google Apps Script)
   btn.innerHTML = '📤 Envoi par email en cours…';
-  var reader = new FileReader();
-  reader.readAsDataURL(zipBlob);
-  reader.onload = function() {
-    var base64 = reader.result.split(',')[1];
-    fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({
-        zip: base64,
-        filename: folderName + '.zip',
-        fiche: lines.join('\n')
-      })
-    }).then(function() {
-      btn.disabled = false;
-      btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
-      goStep(6);
-    }).catch(function() {
-      btn.disabled = false;
-      btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
-      goStep(6);
-    });
-  };
-  reader.onerror = function() {
+  try {
+    var ficheTexte = lines.join('\n');
+    // Créer une page HTML avec auto-submit dans un nouvel onglet
+    var formHtml = '<!DOCTYPE html><html><body>'
+      + '<form id="f" method="POST" action="https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec">'
+      + '<input type="hidden" name="filename" value="' + folderName + '.zip"/>'
+      + '<input type="hidden" name="fiche" value="' + ficheTexte.replace(/"/g, '&quot;').replace(/</g, '&lt;') + '"/>'
+      + '</form>'
+      + '<script>document.getElementById("f").submit();<\/script>'
+      + '</body></html>';
+
+    var blob2 = new Blob([formHtml], { type: 'text/html' });
+    var formUrl = URL.createObjectURL(blob2);
+    var win = window.open(formUrl, '_blank');
+    setTimeout(function() {
+      if (win) win.close();
+      URL.revokeObjectURL(formUrl);
+    }, 4000);
+  } catch(e) {}
+
+  setTimeout(function() {
     btn.disabled = false;
     btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
     goStep(6);
-  };
+  }, 4000);
 }
 
 function resetForm() {
