@@ -653,33 +653,27 @@ async function generateZip() {
   var a = document.createElement('a');
   a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
 
-  // Envoi via formulaire dans nouvel onglet (seule méthode fiable avec Google Apps Script)
+  // Envoi via form-urlencoded + no-cors (seul format que Google Apps Script accepte)
   btn.innerHTML = '📤 Envoi par email en cours…';
-  try {
-    var ficheTexte = lines.join('\n');
-    // Créer une page HTML avec auto-submit dans un nouvel onglet
-    var formHtml = '<!DOCTYPE html><html><body>'
-      + '<form id="f" method="POST" action="https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec">'
-      + '<input type="hidden" name="filename" value="' + folderName + '.zip"/>'
-      + '<input type="hidden" name="fiche" value="' + ficheTexte.replace(/"/g, '&quot;').replace(/</g, '&lt;') + '"/>'
-      + '</form>'
-      + '<script>document.getElementById("f").submit();<\/script>'
-      + '</body></html>';
+  var ficheTexte = lines.join('\n');
+  var params = new URLSearchParams();
+  params.append('filename', folderName + '.zip');
+  params.append('fiche', ficheTexte);
 
-    var blob2 = new Blob([formHtml], { type: 'text/html' });
-    var formUrl = URL.createObjectURL(blob2);
-    var win = window.open(formUrl, '_blank');
-    setTimeout(function() {
-      if (win) win.close();
-      URL.revokeObjectURL(formUrl);
-    }, 4000);
-  } catch(e) {}
-
-  setTimeout(function() {
+  fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  }).then(function() {
     btn.disabled = false;
     btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
     goStep(6);
-  }, 4000);
+  }).catch(function() {
+    btn.disabled = false;
+    btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
+    goStep(6);
+  });
 }
 
 function resetForm() {
