@@ -653,24 +653,35 @@ async function generateZip() {
   var a = document.createElement('a');
   a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
 
-  // Envoi fiche par email via GET (contourne CORS)
+  // Envoi ZIP + fiche par email via fetch (https OK, pas de CORS)
   btn.innerHTML = '📤 Envoi par email en cours…';
-  try {
-    var ficheEncodee = encodeURIComponent(lines.join('\n'));
-    var nomEncode = encodeURIComponent(folderName);
-    var url = 'https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec'
-      + '?filename=' + nomEncode
-      + '&fiche=' + ficheEncodee;
-
-    var img = new Image();
-    img.src = url;
-  } catch(err) {}
-
-  setTimeout(function() {
+  var reader = new FileReader();
+  reader.readAsDataURL(zipBlob);
+  reader.onload = function() {
+    var base64 = reader.result.split(',')[1];
+    fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        zip: base64,
+        filename: folderName + '.zip',
+        fiche: lines.join('\n')
+      })
+    }).then(function() {
+      btn.disabled = false;
+      btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
+      goStep(6);
+    }).catch(function() {
+      btn.disabled = false;
+      btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
+      goStep(6);
+    });
+  };
+  reader.onerror = function() {
     btn.disabled = false;
     btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
     goStep(6);
-  }, 3000);
+  };
 }
 
 function resetForm() {
