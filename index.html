@@ -653,19 +653,19 @@ async function generateZip() {
   var a = document.createElement('a');
   a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
 
-  // Envoi via form-urlencoded + no-cors (seul format que Google Apps Script accepte)
+  // Envoi via Formspree
   btn.innerHTML = '📤 Envoi par email en cours…';
   var ficheTexte = lines.join('\n');
-  var params = new URLSearchParams();
-  params.append('filename', folderName + '.zip');
-  params.append('fiche', ficheTexte);
 
-  fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
+  fetch('https://formspree.io/f/mgojaeyv', {
     method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString()
-  }).then(function() {
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filename: folderName + '.zip',
+      fiche: ficheTexte
+    })
+  }).then(function(r) { return r.json(); })
+  .then(function(data) {
     btn.disabled = false;
     btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
     goStep(6);
