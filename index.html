@@ -359,8 +359,19 @@
     <div class="final-card">
       <div class="final-icon">🎉</div>
       <h2>Dossier généré avec succès !</h2>
-      <p>Votre dossier a été téléchargé <strong>et envoyé par email</strong> à votre prestataire. Conservez le ZIP téléchargé comme copie.</p>
-      <button class="btn btn-primary btn-lg" onclick="resetForm()">📋 Nouveau dossier</button>
+      <p>Votre fiche a bien été transmise à votre prestataire.</p>
+      <div style="background:#eff3ff;border:2px solid #bfcffe;border-radius:12px;padding:20px;margin:20px auto;max-width:440px;text-align:left;">
+        <div style="font-weight:700;font-size:14px;color:#1d4ed8;margin-bottom:10px;">📎 Dernière étape — Envoyez votre dossier ZIP</div>
+        <div style="font-size:13px;color:#3a3f4b;line-height:1.7;">
+          Le fichier ZIP contenant vos photos et documents a été téléchargé sur votre appareil.<br/><br/>
+          <strong>Envoyez-le par email à :</strong><br/>
+          <a href="mailto:info@homologauto.fr" style="color:#1d4ed8;font-weight:700;font-size:15px;">info@homologauto.fr</a>
+        </div>
+        <a href="mailto:info@homologauto.fr?subject=Dossier homologation — fichiers joints" style="display:block;margin-top:14px;background:#1d4ed8;color:white;text-align:center;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+          📧 Ouvrir mon email pour envoyer le ZIP
+        </a>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="resetForm()" style="margin-top:10px;">📋 Nouveau dossier</button>
     </div>
   </div>
 
@@ -653,66 +664,10 @@ async function generateZip() {
   var a = document.createElement('a');
   a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
 
-  // Étape 1 : Upload fichiers vers Google Drive
-  btn.innerHTML = '📤 Upload des fichiers en cours…';
-  var ficheTexte = lines.join('\n');
-
-  var allSlots = [
-    { slot: 'photo-etiquette', label: 'Etiquette_Constructeur' },
-    { slot: 'doc-cg',          label: 'Carte_Grise' },
-    { slot: 'doc-douane',      label: 'Document_Douanier' }
-  ];
-
-  var promises = [];
-  allSlots.forEach(function(s) {
-    fileStore[s.slot].forEach(function(f, i) {
-      promises.push(new Promise(function(resolve) {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          resolve({
-            name: s.label + '_' + (i+1) + '_' + f.name,
-            mimeType: f.type || 'application/octet-stream',
-            data: ev.target.result.split(',')[1]
-          });
-        };
-        reader.readAsDataURL(f);
-      }));
-    });
-  });
-
-  Promise.all(promises).then(function(fichiers) {
-    // Upload vers Drive via no-cors (les fichiers arrivent sur Drive)
-    fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({
-        dossierNom: folderName,
-        fiche: ficheTexte,
-        fichiers: fichiers
-      })
-    }).catch(function() {});
-
-    // Étape 2 : Email via Formspree (fonctionne confirmé)
-    btn.innerHTML = '📤 Envoi email en cours…';
-    return fetch('https://formspree.io/f/mgojaeyv', {
-      method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dossier: folderName,
-        fiche: ficheTexte,
-        message: 'Nouveau dossier homologation soumis. Les fichiers ont été uploadés sur Google Drive dans le dossier : Dossiers Homologation/' + folderName
-      })
-    });
-  }).then(function(r) { return r.json(); })
-  .then(function(result) {
-    btn.disabled = false;
-    btn.innerHTML = '📦 Générer, Télécharger &amp; Envoyer par email';
-    goStep(6);
-  }).catch(function() {
-    btn.disabled = false;
-    btn.innerHTML = '📦 Générer, Télécharger &amp; Envoyer par email';
-    goStep(6);
-  });
+  // ZIP téléchargé, on passe à l'étape finale
+  btn.disabled = false;
+  btn.innerHTML = '📦 Générer &amp; Télécharger le dossier';
+  goStep(6);
 }
 
 function resetForm() {
