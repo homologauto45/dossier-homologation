@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dossier d'Homologation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+  :root {
+    --ink:#0f1117;--ink-2:#3a3f4b;--ink-3:#7a8194;
+    --bg:#f7f8fa;--surface:#fff;
+    --accent:#1d4ed8;--accent-light:#eff3ff;--accent-border:#bfcffe;
+    --success:#16a34a;--danger:#dc2626;
+    --warn:#d97706;--warn-light:#fffbeb;--warn-border:#fcd34d;
+    --border:#e5e7eb;--radius:10px;--radius-lg:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6;}
+  .header{background:var(--ink);color:white;padding:24px 40px;display:flex;align-items:center;gap:16px;}
+  .header-logo{width:42px;height:42px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:white;flex-shrink:0;}
+  .header-text h1{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;}
+  .header-text p{color:#9ca3af;font-size:13px;margin-top:2px;}
+  .progress-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;overflow-x:auto;}
+  .step-item{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;border:2px solid var(--border);background:var(--bg);color:var(--ink-3);transition:all .25s;}
+  .step-dot.active{border-color:var(--accent);background:var(--accent);color:white;}
+  .step-dot.done{border-color:var(--success);background:var(--success);color:white;}
+  .step-label{font-size:12px;font-weight:500;color:var(--ink-3);white-space:nowrap;}
+  .step-label.active{color:var(--accent);font-weight:600;}
+  .step-label.done{color:var(--success);}
+  .step-sep{width:28px;height:2px;background:var(--border);margin:0 4px;flex-shrink:0;}
+  .step-sep.done{background:var(--success);}
+  .main{max-width:780px;margin:36px auto;padding:0 20px 80px;}
+  .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;margin-bottom:24px;display:none;}
+  .section-card.active{display:block;}
+  .section-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:5px;}
+  .section-subtitle{color:var(--ink-3);font-size:13px;margin-bottom:20px;}
+  .type-toggle{display:flex;border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:22px;}
+  .type-btn{flex:1;padding:11px 16px;background:var(--bg);border:none;border-right:1.5px solid var(--border);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all .2s;}
+  .type-btn:last-child{border-right:none;}
+  .type-btn.active{background:var(--accent);color:white;}
+  .type-btn:hover:not(.active){background:var(--accent-light);color:var(--accent);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .form-group{display:flex;flex-direction:column;gap:6px;}
+  .form-group.full{grid-column:1/-1;}
+  label{font-size:13px;font-weight:600;color:var(--ink-2);}
+  label .code{font-family:monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--ink-3);margin-left:4px;font-weight:400;}
+  label span.req{color:var(--danger);margin-left:2px;}
+  input[type=text],input[type=email],input[type=tel],input[type=number],select,textarea{border:1.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:var(--bg);transition:border-color .2s,box-shadow .2s;width:100%;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.1);background:white;}
+  textarea{resize:vertical;min-height:80px;}
+  .notice{background:var(--accent-light);border:1px solid var(--accent-border);border-radius:var(--radius);padding:14px 18px;font-size:13px;color:var(--ink-2);margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;}
+  .notice-icon{font-size:18px;flex-shrink:0;line-height:1.4;}
+  .warning-box{background:var(--warn-light);border:2px solid var(--warn-border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:22px;}
+  .warning-box .wb-title{font-weight:700;font-size:14px;color:#92400e;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .warning-box ul{padding-left:18px;font-size:13px;color:#78350f;line-height:1.8;}
+  .confirm-block{background:#fef9ec;border:2px solid var(--warn);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:24px;}
+  .confirm-block .cb-title{font-weight:700;font-size:13px;color:#92400e;margin-bottom:8px;}
+  .confirm-block label{display:flex;align-items:flex-start;gap:12px;cursor:pointer;font-size:13px;color:var(--ink-2);font-weight:400;line-height:1.6;}
+  .confirm-block input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--warn);cursor:pointer;}
+  .upload-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .upload-label-row h3{font-size:14px;font-weight:600;}
+  .upload-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--accent-light);color:var(--accent);border:1px solid var(--accent-border);}
+  .upload-badge.req-badge{background:#fef2f2;color:var(--danger);border-color:#fecaca;}
+  .drop-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:26px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--bg);}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-light);}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .drop-icon{font-size:30px;margin-bottom:8px;}
+  .drop-title{font-weight:600;font-size:14px;color:var(--ink-2);}
+  .drop-hint{font-size:12px;color:var(--ink-3);margin-top:4px;}
+  .file-list{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .file-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;}
+  .file-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+  .file-thumb-icon{width:36px;height:36px;border-radius:6px;background:var(--accent-light);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .file-info{flex:1;min-width:0;}
+  .file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .file-size{font-size:11px;color:var(--ink-3);}
+  .file-remove{background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:16px;padding:0 4px;flex-shrink:0;}
+  .file-remove:hover{color:var(--danger);}
+  .upload-divider{height:1px;background:var(--border);margin:22px 0;}
+  .nav-row{display:flex;gap:12px;margin-top:28px;justify-content:flex-end;}
+  .btn{padding:11px 24px;border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;}
+  .btn-secondary{background:var(--bg);border:1.5px solid var(--border);color:var(--ink-2);}
+  .btn-secondary:hover{border-color:var(--ink-3);background:white;}
+  .btn-primary{background:var(--accent);color:white;}
+  .btn-primary:hover{background:#1a45c4;}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-success{background:var(--success);color:white;}
+  .btn-success:hover{background:#158a42;}
+  .btn-lg{padding:14px 32px;font-size:15px;}
+  .print-block{background:#f0fdf4;border:2px solid #86efac;border-radius:var(--radius-lg);padding:22px;margin:22px 0 0;}
+  .pb-header{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;}
+  .pb-icon{font-size:30px;flex-shrink:0;line-height:1;}
+  .pb-title{font-weight:700;font-size:15px;color:#14532d;margin-bottom:4px;}
+  .pb-subtitle{font-size:13px;color:#166534;line-height:1.5;}
+  .cg-alert{background:#fef2f2;border:2px solid #fca5a5;border-radius:var(--radius);padding:14px 16px;margin:0 0 16px;}
+  .cg-alert-title{font-weight:700;font-size:13px;color:#991b1b;margin-bottom:5px;}
+  .cg-alert-body{font-size:13px;color:#7f1d1d;line-height:1.6;}
+  .btn-print{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 20px;background:var(--success);color:white;border:none;border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .btn-print:hover{background:#15803d;}
+  .recap-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;}
+  .recap-block h3{font-size:12px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+  .recap-row{display:flex;gap:8px;margin-bottom:5px;font-size:14px;}
+  .recap-key{color:var(--ink-3);min-width:220px;flex-shrink:0;}
+  .recap-val{font-weight:500;}
+  .file-tally{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}
+  .tally-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+  .tally-num{font-size:22px;font-weight:700;color:var(--accent);}
+  .tally-label{font-size:12px;color:var(--ink-3);margin-top:2px;}
+  .final-card{text-align:center;padding:40px 20px;}
+  .final-icon{font-size:52px;margin-bottom:14px;}
+  .final-card h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px;}
+  .final-card p{color:var(--ink-3);font-size:14px;max-width:400px;margin:0 auto 24px;}
+  @media(max-width:600px){.header{padding:18px 20px;}.progress-bar{padding:12px 16px;}.main{margin:16px auto;}.section-card{padding:20px;}.form-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">H</div>
+  <div class="header-text">
+    <h1>Dossier d'Homologation</h1>
+    <p>Transmettez votre dossier complet en quelques minutes</p>
+  </div>
+</div>
+
+<div class="progress-bar">
+  <div class="step-item"><div class="step-dot active" id="dot-1">1</div><span class="step-label active" id="lbl-1">Coordonnées</span></div>
+  <div class="step-sep" id="sep-1"></div>
+  <div class="step-item"><div class="step-dot" id="dot-2">2</div><span class="step-label" id="lbl-2">Fiche technique</span></div>
+  <div class="step-sep" id="sep-2"></div>
+  <div class="step-item"><div class="step-dot" id="dot-3">3</div><span class="step-label" id="lbl-3">Photo</span></div>
+  <div class="step-sep" id="sep-3"></div>
+  <div class="step-item"><div class="step-dot" id="dot-4">4</div><span class="step-label" id="lbl-4">Documents</span></div>
+  <div class="step-sep" id="sep-4"></div>
+  <div class="step-item"><div class="step-dot" id="dot-5">5</div><span class="step-label" id="lbl-5">Récapitulatif</span></div>
+</div>
+
+<div class="main">
+
+  <!-- ÉTAPE 1 -->
+  <div class="section-card active" id="step-1">
+    <div class="section-title">👤 Coordonnées du propriétaire du véhicule</div>
+    <div class="section-subtitle">Ces informations sont utilisées pour l'édition de votre Carte Grise de sortie du territoire.</div>
+    <div class="notice">
+      <span class="notice-icon">ℹ️</span>
+      <div><strong>Important — Sortie du territoire :</strong> Les informations saisies correspondent au <strong>propriétaire légal du véhicule</strong>. Cette personne figurera sur la <strong>Carte Grise de sortie du territoire</strong>, avec des plaques valables <strong>3 mois</strong>. Assurez-vous que toutes les données correspondent à votre pièce d'identité ou KBIS.</div>
+    </div>
+
+    <div class="type-toggle">
+      <button class="type-btn active" id="btn-particulier" onclick="setType('particulier')">👤 Particulier</button>
+      <button class="type-btn" id="btn-societe" onclick="setType('societe')">🏢 Société / Professionnel</button>
+    </div>
+    <input type="hidden" id="type-proprietaire" value="particulier"/>
+
+    <div class="form-grid">
+
+      <!-- SOCIÉTÉ uniquement -->
+      <div class="form-group full" id="grp-raison" style="display:none">
+        <label>Raison sociale <span class="req">*</span></label>
+        <input type="text" id="raison_sociale" placeholder="ex: Dupont Automobiles SARL"/>
+      </div>
+      <div class="form-group" id="grp-siret" style="display:none">
+        <label>N° SIRET <span class="req">*</span></label>
+        <input type="text" id="siret" placeholder="ex: 123 456 789 00012"/>
+      </div>
+      <div class="form-group" id="grp-tva" style="display:none">
+        <label>N° TVA intracommunautaire <span class="req">*</span></label>
+        <input type="text" id="tva" placeholder="ex: FR12 123456789"/>
+      </div>
+
+      <!-- PARTICULIER uniquement -->
+      <div class="form-group" id="grp-prenom">
+        <label>Prénom <span class="req">*</span></label>
+        <input type="text" id="prenom" placeholder="Jean"/>
+      </div>
+      <div class="form-group" id="grp-nom">
+        <label>Nom <span class="req">*</span></label>
+        <input type="text" id="nom" placeholder="Dupont"/>
+      </div>
+      <div class="form-group" id="grp-ddn">
+        <label>Date de naissance <span class="req">*</span></label>
+        <input type="text" id="ddn" placeholder="ex: 15/03/1985"/>
+      </div>
+
+      <!-- COMMUN -->
+      <div class="form-group">
+        <label>Email <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="contact@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Téléphone <span class="req">*</span></label>
+        <input type="tel" id="tel" placeholder="06 00 00 00 00"/>
+      </div>
+      <div class="form-group full">
+        <label>Adresse complète <span class="req">*</span></label>
+        <input type="text" id="adresse" placeholder="12 rue de la Paix, 75001 Paris"/>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-primary" onclick="goStep(2)">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="section-card" id="step-2">
+    <div class="section-title">🔧 Fiche technique du véhicule</div>
+    <div class="section-subtitle">Reportez exactement les données figurant sur votre carte grise étrangère.</div>
+    <div class="warning-box">
+      <div class="wb-title">⚠️ Avertissement — Responsabilité du déclarant</div>
+      <ul>
+        <li>La fiche technique sera transmise au <strong>contrôleur technique européen</strong> chargé de votre homologation.</li>
+        <li>Ces données serviront à l'immatriculation en <strong>préfecture</strong> et doivent être <strong>rigoureusement exactes</strong>.</li>
+        <li><strong>Vous êtes seul responsable</strong> de l'exactitude des informations saisies.</li>
+        <li>Des données erronées peuvent entraîner un <strong>refus d'homologation en France</strong>.</li>
+      </ul>
+    </div>
+    <div class="confirm-block">
+      <div class="cb-title">✅ Confirmation obligatoire avant de continuer</div>
+      <label>
+        <input type="checkbox" id="confirm-responsabilite"/>
+        <span>Je certifie avoir pris connaissance de l'avertissement. Je comprends que les données saisies seront transmises au contrôleur technique européen et utilisées pour mon immatriculation en préfecture. J'accepte d'en être l'unique responsable.</span>
+      </label>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Marque <span class="code">D.1</span> <span class="req">*</span></label><input type="text" id="marque" placeholder="ex: HYUNDAI"/></div>
+      <div class="form-group"><label>Type / Variante / Version <span class="code">D.2</span></label><input type="text" id="type_variante" placeholder="ex: TUCSON / 4B / 1"/></div>
+      <div class="form-group"><label>Dénomination commerciale <span class="code">D.3</span></label><input type="text" id="denomination" placeholder="ex: TUCSON"/></div>
+      <div class="form-group"><label>Date 1ère immatriculation <span class="req">*</span></label><input type="text" id="date_immat" placeholder="ex: 15/03/2022"/></div>
+      <div class="form-group full"><label>VIN (N° de châssis) <span class="code">E</span> <span class="req">*</span></label><input type="text" id="vin" placeholder="ex: KMHJ851XNUU000000" style="font-family:monospace;letter-spacing:.05em;"/></div>
+      <div class="form-group"><label>PTAC (kg) <span class="code">F.1</span> <span class="req">*</span></label><input type="number" id="ptac" placeholder="ex: 2185"/></div>
+      <div class="form-group"><label>Poids à vide (kg) <span class="code">G</span> <span class="req">*</span></label><input type="number" id="poids_vide" placeholder="ex: 1585"/></div>
+      <div class="form-group"><label>Catégorie <span class="code">J</span> <span class="req">*</span></label>
+        <select id="categorie">
+          <option value="">— Sélectionner —</option>
+          <option value="M1">M1 — Voiture particulière</option>
+          <option value="M2">M2 — Transport personnes (≤5t)</option>
+          <option value="N1">N1 — Utilitaire léger (≤3,5t)</option>
+          <option value="N2">N2 — Poids lourd (3,5–12t)</option>
+          <option value="L3e">L3e — Motocyclette</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Couleur <span class="code">R</span> <span class="req">*</span></label><input type="text" id="couleur" placeholder="ex: BLANC"/></div>
+      <div class="form-group"><label>Cylindrée (cm³) <span class="code">P.1</span> <span class="req">*</span></label><input type="number" id="cylindree" placeholder="ex: 1598"/></div>
+      <div class="form-group"><label>Puissance nette (kW) <span class="code">P.2</span> <span class="req">*</span></label><input type="number" id="puissance_kw" placeholder="ex: 110"/></div>
+      <div class="form-group"><label>Carburant <span class="code">P.3</span> <span class="req">*</span></label>
+        <select id="carburant">
+          <option value="">— Sélectionner —</option>
+          <option value="ES">ES — Essence</option>
+          <option value="GO">GO — Diesel / Gazole</option>
+          <option value="EH">EH — Hybride essence</option>
+          <option value="PH">PH — Hybride rechargeable (PHEV)</option>
+          <option value="EL">EL — Électrique</option>
+          <option value="GP">GP — GPL</option>
+          <option value="HY">HY — Hydrogène</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Nb places <span class="code">S.1</span> <span class="req">*</span></label><input type="number" id="nb_places" placeholder="ex: 5" min="1" max="60"/></div>
+      <div class="form-group"><label>Poids tractable (kg) <span class="code">O.1</span></label><input type="number" id="poids_tractable" placeholder="ex: 1500"/></div>
+      <div class="form-group"><label>Taille des pneus</label><input type="text" id="pneus" placeholder="ex: 235/55 R19"/></div>
+      <div class="form-group"><label>Poids max essieu 1 (kg)</label><input type="number" id="essieu1" placeholder="ex: 1150"/></div>
+      <div class="form-group"><label>Poids max essieu 2 (kg)</label><input type="number" id="essieu2" placeholder="ex: 1150"/></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Retour</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="section-card" id="step-3">
+    <div class="section-title">📸 Photo de l'étiquette constructeur</div>
+    <div class="section-subtitle">Une seule photo est requise à cette étape.</div>
+    <div class="notice">
+      <span class="notice-icon">🏷️</span>
+      <div><strong>Étiquette constructeur (plaque VIN) :</strong> Généralement fixée dans le montant de portière conducteur, sous le capot ou côté pare-brise. Elle doit être <strong>entièrement visible et nette</strong> — VIN, PTAC, PTRA et couleur lisibles, sans reflet.</div>
+    </div>
+    <div class="upload-label-row">
+      <h3>🏷️ Étiquette constructeur</h3>
+      <span class="upload-badge req-badge">Obligatoire</span>
+    </div>
+    <div class="drop-zone" id="dz-etiquette" ondragover="dragOver(event,'dz-etiquette')" ondragleave="dragLeave('dz-etiquette')" ondrop="dropFiles(event,'photo-etiquette')">
+      <input type="file" accept="image/*" onchange="addFiles(this,'photo-etiquette')"/>
+      <div class="drop-icon">🏷️</div>
+      <div class="drop-title">Glissez la photo ici ou cliquez</div>
+      <div class="drop-hint">JPG, PNG, HEIC</div>
+    </div>
+    <div class="file-list" id="list-photo-etiquette"></div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Retour</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 -->
+  <div class="section-card" id="step-4">
+    <div class="section-title">📄 Documents scannés</div>
+    <div class="section-subtitle">Scans nets, 4 coins visibles, texte lisible. PDF ou image acceptés.</div>
+    <div class="upload-label-row"><h3>📋 Carte Grise étrangère</h3><span class="upload-badge req-badge">Obligatoire</span></div>
+    <div class="notice" style="margin-bottom:12px;"><span class="notice-icon">ℹ️</span><div>Scan recto et verso du titre d'immatriculation étranger. Toutes les mentions doivent être lisibles.</div></div>
+    <div class="drop-zone" id="dz-cg" ondragover="dragOver(event,'dz-cg')" ondragleave="dragLeave('dz-cg')" ondrop="dropFiles(event,'doc-cg')">
+      <input type="file" multiple accept="image/*,application/pdf" onchange="addFiles(this,'doc-cg')"/>
+      <div class="drop-icon">📋</div>
+      <div class="drop-title">Glissez le document ici ou cliquez</div>
+      <div class="drop-hint">PDF, JPG, PNG — recto et verso</div>
+    </div>
+    <div class="file-list" id="list-doc-cg"></div>
+    <div class="upload-divider"></div>
+    <div class="upload-label-row"><h3>🛃 Document douanier</h3><span class="upload-badge req-badge">Obligatoire</span></div>
+    <div class="notice" style="margin-bottom:12px;"><span class="notice-icon">ℹ️</span><div>Scan du document de dédouanement (DAU, quitus fiscal, déclaration en douane ou équivalent).</div></div>
+    <div class="drop-zone" id="dz-douane" ondragover="dragOver(event,'dz-douane')" ondragleave="dragLeave('dz-douane')" ondrop="dropFiles(event,'doc-douane')">
+      <input type="file" multiple accept="image/*,application/pdf" onchange="addFiles(this,'doc-douane')"/>
+      <div class="drop-icon">🛃</div>
+      <div class="drop-title">Glissez le document ici ou cliquez</div>
+      <div class="drop-hint">PDF, JPG, PNG</div>
+    </div>
+    <div class="file-list" id="list-doc-douane"></div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goStep(3)">← Retour</button>
+      <button class="btn btn-primary" onclick="goStep(5)">Récapitulatif →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 5 -->
+  <div class="section-card" id="step-5">
+    <div class="section-title">✅ Récapitulatif du dossier</div>
+    <div class="section-subtitle">Vérifiez l'ensemble des informations avant de générer votre dossier.</div>
+    <div id="recap-content"></div>
+    <div class="print-block">
+      <div class="pb-header">
+        <span class="pb-icon">🖨️</span>
+        <div>
+          <div class="pb-title">Impression obligatoire — Dossier physique dans le véhicule</div>
+          <div class="pb-subtitle">Pour que votre dossier soit traité, le récapitulatif doit être <strong>imprimé et glissé dans le véhicule</strong> lors de sa remise.</div>
+        </div>
+      </div>
+      <div class="cg-alert">
+        <div class="cg-alert-title">🚨 Carte Grise originale — Condition sine qua non</div>
+        <div class="cg-alert-body">La <strong>carte grise originale du véhicule</strong> doit obligatoirement être glissée dans le véhicule. <strong>Sans la carte grise originale, aucun document ne pourra être édité</strong>, quelle que soit la complétude du reste du dossier. Une copie ou un scan ne suffit pas — l'original est exigé.</div>
+      </div>
+      <button class="btn-print" onclick="printDossier()">🖨️ Télécharger le dossier imprimable</button>
+      <div class="confirm-block" style="margin-bottom:0;margin-top:16px;">
+        <label>
+          <input type="checkbox" id="confirm-impression"/>
+          <span>Je comprends que mon dossier ne pourra pas être traité sans que la fiche récapitulative soit <strong>imprimée et placée dans le véhicule</strong>, accompagnée de la <strong>carte grise originale</strong>. Je m'engage à fournir ces deux éléments avant la remise du véhicule.</span>
+        </label>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-secondary" onclick="goStep(4)">← Modifier</button>
+      <button class="btn btn-success btn-lg" id="btn-generate" onclick="generateZip()">📦 Générer, Télécharger &amp; Envoyer par email</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 6 -->
+  <div class="section-card" id="step-6">
+    <div class="final-card">
+      <div class="final-icon">🎉</div>
+      <h2>Dossier généré avec succès !</h2>
+      <p>Votre dossier a été téléchargé <strong>et envoyé par email</strong> à votre prestataire. Conservez le ZIP téléchargé comme copie.</p>
+      <button class="btn btn-primary btn-lg" onclick="resetForm()">📋 Nouveau dossier</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var fileStore = { 'photo-etiquette': [], 'doc-cg': [], 'doc-douane': [] };
+var currentStep = 1;
+
+function v(id) {
+  var el = document.getElementById(id);
+  return el ? (el.value || '') : '';
+}
+
+function setType(type) {
+  document.getElementById('type-proprietaire').value = type;
+  document.getElementById('btn-particulier').classList.toggle('active', type === 'particulier');
+  document.getElementById('btn-societe').classList.toggle('active', type === 'societe');
+  var isSoc = type === 'societe';
+  document.getElementById('grp-raison').style.display = isSoc ? '' : 'none';
+  document.getElementById('grp-siret').style.display = isSoc ? '' : 'none';
+  document.getElementById('grp-tva').style.display = isSoc ? '' : 'none';
+  document.getElementById('grp-prenom').style.display = isSoc ? 'none' : '';
+  document.getElementById('grp-nom').style.display = isSoc ? 'none' : '';
+  document.getElementById('grp-ddn').style.display = isSoc ? 'none' : '';
+}
+
+function goStep(n) {
+  if (n > currentStep && !validateStep(currentStep)) return;
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  document.getElementById('step-' + n).classList.add('active');
+  for (var i = 1; i <= 5; i++) {
+    var dot = document.getElementById('dot-' + i);
+    var lbl = document.getElementById('lbl-' + i);
+    dot.classList.remove('active', 'done');
+    lbl.classList.remove('active', 'done');
+    if (i < n) { dot.classList.add('done'); dot.innerHTML = '✓'; lbl.classList.add('done'); }
+    else if (i === n) { dot.classList.add('active'); dot.innerHTML = i; lbl.classList.add('active'); }
+    else { dot.innerHTML = i; }
+    if (i < 5) document.getElementById('sep-' + i).classList.toggle('done', i < n);
+  }
+  currentStep = n;
+  if (n === 5) buildRecap();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(n) {
+  var isSoc = document.getElementById('type-proprietaire').value === 'societe';
+  if (n === 1) {
+    var fields = isSoc
+      ? ['raison_sociale', 'siret', 'tva', 'email', 'tel', 'adresse']
+      : ['prenom', 'nom', 'ddn', 'email', 'tel', 'adresse'];
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById(fields[i]);
+      if (!el || !el.value.trim()) {
+        alert('Veuillez remplir tous les champs obligatoires (*).');
+        if (el) el.focus();
+        return false;
+      }
+    }
+  }
+  if (n === 2) {
+    if (!document.getElementById('confirm-responsabilite').checked) {
+      alert('Vous devez cocher la case de confirmation avant de continuer.');
+      return false;
+    }
+    var f2 = ['marque', 'date_immat', 'vin', 'ptac', 'poids_vide', 'categorie', 'couleur', 'cylindree', 'puissance_kw', 'carburant', 'nb_places'];
+    for (var j = 0; j < f2.length; j++) {
+      var el2 = document.getElementById(f2[j]);
+      if (!el2 || !el2.value.trim()) {
+        alert('Veuillez remplir tous les champs obligatoires (*) de la fiche technique.');
+        if (el2) el2.focus();
+        return false;
+      }
+    }
+  }
+  if (n === 3 && fileStore['photo-etiquette'].length === 0) {
+    alert("Veuillez ajouter la photo de l'étiquette constructeur."); return false;
+  }
+  if (n === 4) {
+    if (fileStore['doc-cg'].length === 0) { alert('Veuillez joindre le scan de la Carte Grise étrangère.'); return false; }
+    if (fileStore['doc-douane'].length === 0) { alert('Veuillez joindre le scan du document douanier.'); return false; }
+  }
+  return true;
+}
+
+function addFiles(input, slot) {
+  Array.from(input.files).forEach(function(f) { fileStore[slot].push(f); });
+  renderFiles(slot); input.value = '';
+}
+function dropFiles(e, slot) {
+  e.preventDefault(); dragLeave(e.currentTarget.id);
+  Array.from(e.dataTransfer.files).forEach(function(f) { fileStore[slot].push(f); });
+  renderFiles(slot);
+}
+function removeFile(slot, idx) { fileStore[slot].splice(idx, 1); renderFiles(slot); }
+function renderFiles(slot) {
+  var list = document.getElementById('list-' + slot);
+  list.innerHTML = '';
+  fileStore[slot].forEach(function(f, i) {
+    var item = document.createElement('div'); item.className = 'file-item';
+    if (f.type.startsWith('image/')) {
+      var img = document.createElement('img'); img.className = 'file-thumb';
+      var r = new FileReader(); r.onload = function(e) { img.src = e.target.result; }; r.readAsDataURL(f);
+      item.appendChild(img);
+    } else {
+      var ic = document.createElement('div'); ic.className = 'file-thumb-icon'; ic.innerHTML = '📄'; item.appendChild(ic);
+    }
+    var info = document.createElement('div'); info.className = 'file-info';
+    info.innerHTML = '<div class="file-name">' + f.name + '</div><div class="file-size">' + (f.size/1024).toFixed(0) + ' Ko</div>';
+    var btn = document.createElement('button'); btn.className = 'file-remove'; btn.innerHTML = '✕';
+    (function(s, ix) { btn.onclick = function() { removeFile(s, ix); }; })(slot, i);
+    item.appendChild(info); item.appendChild(btn); list.appendChild(item);
+  });
+}
+function dragOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag-over'); }
+function dragLeave(id) { document.getElementById(id).classList.remove('drag-over'); }
+
+function buildRecap() {
+  var isSoc = document.getElementById('type-proprietaire').value === 'societe';
+  var total = fileStore['photo-etiquette'].length + fileStore['doc-cg'].length + fileStore['doc-douane'].length;
+  var rr = '<div class="recap-row"><span class="recap-key">Type</span><span class="recap-val">' + (isSoc ? '🏢 Société / Professionnel' : '👤 Particulier') + '</span></div>';
+  if (isSoc) {
+    rr += '<div class="recap-row"><span class="recap-key">Raison sociale</span><span class="recap-val">' + v('raison_sociale') + '</span></div>';
+    rr += '<div class="recap-row"><span class="recap-key">N° SIRET</span><span class="recap-val">' + v('siret') + '</span></div>';
+    rr += '<div class="recap-row"><span class="recap-key">N° TVA</span><span class="recap-val">' + v('tva') + '</span></div>';
+  } else {
+    rr += '<div class="recap-row"><span class="recap-key">Prénom / Nom</span><span class="recap-val">' + v('prenom') + ' ' + v('nom') + '</span></div>';
+    rr += '<div class="recap-row"><span class="recap-key">Date de naissance</span><span class="recap-val">' + v('ddn') + '</span></div>';
+  }
+  rr += '<div class="recap-row"><span class="recap-key">Email</span><span class="recap-val">' + v('email') + '</span></div>';
+  rr += '<div class="recap-row"><span class="recap-key">Téléphone</span><span class="recap-val">' + v('tel') + '</span></div>';
+  rr += '<div class="recap-row"><span class="recap-key">Adresse</span><span class="recap-val">' + v('adresse') + '</span></div>';
+
+  var rt = '<div class="recap-row"><span class="recap-key">D.1 Marque</span><span class="recap-val">' + v('marque') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">D.2 Type/Variante/Version</span><span class="recap-val">' + v('type_variante') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">D.3 Dénomination</span><span class="recap-val">' + v('denomination') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">1ère immatriculation</span><span class="recap-val">' + v('date_immat') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">E VIN</span><span class="recap-val" style="font-family:monospace">' + v('vin') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">F.1 PTAC</span><span class="recap-val">' + v('ptac') + ' kg</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">G Poids à vide</span><span class="recap-val">' + v('poids_vide') + ' kg</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">J Catégorie</span><span class="recap-val">' + v('categorie') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">R Couleur</span><span class="recap-val">' + v('couleur') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">P.1 Cylindrée</span><span class="recap-val">' + v('cylindree') + ' cm³</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">P.2 Puissance</span><span class="recap-val">' + v('puissance_kw') + ' kW</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">P.3 Carburant</span><span class="recap-val">' + v('carburant') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">S.1 Nb places</span><span class="recap-val">' + v('nb_places') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">O.1 Poids tractable</span><span class="recap-val">' + v('poids_tractable') + ' kg</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">Pneus</span><span class="recap-val">' + v('pneus') + '</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">Essieu 1 max</span><span class="recap-val">' + v('essieu1') + ' kg</span></div>';
+  rt += '<div class="recap-row"><span class="recap-key">Essieu 2 max</span><span class="recap-val">' + v('essieu2') + ' kg</span></div>';
+
+  document.getElementById('recap-content').innerHTML =
+    '<div class="recap-block"><h3>👤 Propriétaire / Sortie du territoire</h3>' + rr + '</div>' +
+    '<div class="recap-block"><h3>🔧 Fiche technique</h3>' + rt + '</div>' +
+    '<div class="recap-block"><h3>📁 Fichiers joints</h3>' +
+      '<div class="file-tally">' +
+        '<div class="tally-box"><div class="tally-num">' + fileStore['photo-etiquette'].length + '</div><div class="tally-label">Étiquette constructeur</div></div>' +
+        '<div class="tally-box"><div class="tally-num">' + fileStore['doc-cg'].length + '</div><div class="tally-label">Carte Grise étrangère</div></div>' +
+        '<div class="tally-box"><div class="tally-num">' + fileStore['doc-douane'].length + '</div><div class="tally-label">Document douanier</div></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;font-size:13px;color:var(--ink-3)">Total : <strong>' + total + ' fichier(s)</strong></div>' +
+    '</div>';
+}
+
+function printDossier() {
+  var isSoc = document.getElementById('type-proprietaire').value === 'societe';
+  var now = new Date();
+  var ownerRows = isSoc
+    ? '<tr><td>Type</td><td><strong>Société / Professionnel</strong></td></tr><tr><td>Raison sociale</td><td><strong>' + v('raison_sociale') + '</strong></td></tr><tr><td>N° SIRET</td><td>' + v('siret') + '</td></tr><tr><td>N° TVA</td><td>' + v('tva') + '</td></tr>'
+    : '<tr><td>Type</td><td>Particulier</td></tr><tr><td>Prénom / Nom</td><td><strong>' + v('prenom') + ' ' + v('nom') + '</strong></td></tr><tr><td>Date de naissance</td><td>' + v('ddn') + '</td></tr>';
+  ownerRows += '<tr><td>Email</td><td>' + v('email') + '</td></tr><tr><td>Téléphone</td><td>' + v('tel') + '</td></tr><tr><td>Adresse</td><td>' + v('adresse') + '</td></tr>';
+
+  var html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><title>Dossier Homologation</title>'
+    + '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#111;}.page{max-width:700px;margin:0 auto;padding:28px;}h1{font-size:17px;border-bottom:3px solid #1d4ed8;padding-bottom:8px;margin-bottom:5px;color:#1d4ed8;}'
+    + '.meta{font-size:11px;color:#666;margin-bottom:20px;}h2{font-size:13px;font-weight:bold;background:#f0f4ff;border-left:4px solid #1d4ed8;padding:5px 10px;margin:16px 0 8px;}'
+    + 'table{width:100%;border-collapse:collapse;}td{padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;vertical-align:top;}td:first-child{color:#555;width:220px;font-weight:600;}'
+    + '.warn{background:#fffbeb;border:2px solid #fcd34d;border-radius:6px;padding:12px;margin:16px 0;font-size:11px;color:#78350f;line-height:1.6;}.warn strong{font-size:12px;display:block;margin-bottom:4px;}'
+    + '.sign{margin-top:30px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;gap:30px;}.sign-item{flex:1;}.sign-label{font-size:11px;color:#666;margin-bottom:20px;}.sign-line{border-bottom:1px solid #111;}'
+    + '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body><div class="page">'
+    + '<h1>Dossier d\'Homologation</h1>'
+    + '<div class="meta">Généré le ' + now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR') + ' — À imprimer et glisser dans le véhicule</div>'
+    + '<h2>👤 Propriétaire / Sortie du territoire</h2><table>' + ownerRows + '</table>'
+    + '<h2>🔧 Fiche technique véhicule</h2><table>'
+    + '<tr><td>D.1 Marque</td><td>' + v('marque') + '</td></tr>'
+    + '<tr><td>D.2 Type/Variante/Version</td><td>' + v('type_variante') + '</td></tr>'
+    + '<tr><td>D.3 Dénomination</td><td>' + v('denomination') + '</td></tr>'
+    + '<tr><td>1ère immatriculation</td><td>' + v('date_immat') + '</td></tr>'
+    + '<tr><td>E VIN</td><td><strong style="font-family:monospace">' + v('vin') + '</strong></td></tr>'
+    + '<tr><td>F.1 PTAC</td><td>' + v('ptac') + ' kg</td></tr>'
+    + '<tr><td>G Poids à vide</td><td>' + v('poids_vide') + ' kg</td></tr>'
+    + '<tr><td>J Catégorie</td><td>' + v('categorie') + '</td></tr>'
+    + '<tr><td>R Couleur</td><td>' + v('couleur') + '</td></tr>'
+    + '<tr><td>P.1 Cylindrée</td><td>' + v('cylindree') + ' cm³</td></tr>'
+    + '<tr><td>P.2 Puissance nette</td><td>' + v('puissance_kw') + ' kW</td></tr>'
+    + '<tr><td>P.3 Carburant</td><td>' + v('carburant') + '</td></tr>'
+    + '<tr><td>S.1 Nb places</td><td>' + v('nb_places') + '</td></tr>'
+    + '<tr><td>O.1 Poids tractable</td><td>' + v('poids_tractable') + ' kg</td></tr>'
+    + '<tr><td>Pneus</td><td>' + v('pneus') + '</td></tr>'
+    + '<tr><td>Essieu 1 max</td><td>' + v('essieu1') + ' kg</td></tr>'
+    + '<tr><td>Essieu 2 max</td><td>' + v('essieu2') + ' kg</td></tr>'
+    + '</table>'
+    + '<div class="warn"><strong>⚠️ Attestation de responsabilité</strong>Le soussigné certifie que les données ci-dessus sont exactes et conformes aux documents officiels. Il reconnaît en être l\'unique responsable. Ces informations seront transmises au contrôleur technique européen et utilisées pour l\'immatriculation en préfecture.</div>'
+    + '<div class="sign"><div class="sign-item"><div class="sign-label">Fait à :</div><div class="sign-line"></div></div><div class="sign-item"><div class="sign-label">Le :</div><div class="sign-line"></div></div><div class="sign-item"><div class="sign-label">Signature :</div><div class="sign-line"></div></div></div>'
+    + '</div></body></html>';
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = ('Dossier_' + v('marque') + '_' + (isSoc ? v('raison_sociale') : v('nom')) + '.html').replace(/[^a-zA-Z0-9._-]/g, '_');
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function generateZip() {
+  if (!document.getElementById('confirm-impression').checked) {
+    alert('Vous devez confirmer que vous allez imprimer et glisser le dossier dans le véhicule.');
+    return;
+  }
+  var btn = document.getElementById('btn-generate');
+  btn.disabled = true; btn.innerHTML = '⏳ Génération en cours…';
+  var isSoc = document.getElementById('type-proprietaire').value === 'societe';
+  var now = new Date();
+  var dateFmt = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  var folderName = ('Homologation_' + v('marque') + '_' + v('vin') + '_' + dateFmt).replace(/[^a-zA-Z0-9_-]/g, '_');
+  var zip = new JSZip();
+  var root = zip.folder(folderName);
+
+  var lines = [
+    "DOSSIER D'HOMOLOGATION",
+    "Généré le : " + now.toLocaleDateString('fr-FR') + " à " + now.toLocaleTimeString('fr-FR'),
+    "=".repeat(55), "",
+    "PROPRIÉTAIRE / SORTIE DU TERRITOIRE",
+    "-".repeat(40),
+    "Type         : " + (isSoc ? "Société / Professionnel" : "Particulier"),
+  ];
+  if (isSoc) {
+    lines.push("Raison soc.  : " + v('raison_sociale'));
+    lines.push("SIRET        : " + v('siret'));
+    lines.push("TVA          : " + v('tva'));
+  } else {
+    lines.push("Prénom / Nom : " + v('prenom') + " " + v('nom'));
+    lines.push("Date naiss.  : " + v('ddn'));
+  }
+  lines.push("Email        : " + v('email'));
+  lines.push("Téléphone    : " + v('tel'));
+  lines.push("Adresse      : " + v('adresse'));
+  lines = lines.concat(["", "FICHE TECHNIQUE VÉHICULE", "-".repeat(40),
+    "D.1  Marque                    : " + v('marque'),
+    "D.2  Type / Variante / Version : " + v('type_variante'),
+    "D.3  Dénomination              : " + v('denomination'),
+    "     1ère immatriculation      : " + v('date_immat'),
+    "E    VIN                       : " + v('vin'),
+    "F.1  PTAC                      : " + v('ptac') + " kg",
+    "G    Poids à vide              : " + v('poids_vide') + " kg",
+    "J    Catégorie                 : " + v('categorie'),
+    "R    Couleur                   : " + v('couleur'),
+    "P.1  Cylindrée                 : " + v('cylindree') + " cm³",
+    "P.2  Puissance nette           : " + v('puissance_kw') + " kW",
+    "P.3  Carburant                 : " + v('carburant'),
+    "S.1  Nombre de places          : " + v('nb_places'),
+    "O.1  Poids tractable           : " + v('poids_tractable') + " kg",
+    "     Pneus                     : " + v('pneus'),
+    "     Poids max essieu 1        : " + v('essieu1') + " kg",
+    "     Poids max essieu 2        : " + v('essieu2') + " kg",
+    "", "ATTESTATION", "-".repeat(40),
+    "Le déclarant certifie avoir renseigné ces données sous sa seule responsabilité.",
+  ]);
+  root.file('FICHE_TECHNIQUE.txt', lines.join('\n'));
+
+  var mapping = [
+    { slot: 'photo-etiquette', folder: '1_Photo_Etiquette_Constructeur' },
+    { slot: 'doc-cg',          folder: '2_Carte_Grise_Etrangere' },
+    { slot: 'doc-douane',      folder: '3_Document_Douanier' },
+  ];
+  for (var m = 0; m < mapping.length; m++) {
+    var s = mapping[m].slot, fol = mapping[m].folder;
+    if (fileStore[s].length === 0) continue;
+    var dir = root.folder(fol);
+    for (var i = 0; i < fileStore[s].length; i++) {
+      var f = fileStore[s][i];
+      dir.file(String(i+1).padStart(2,'0') + '_' + f.name, await f.arrayBuffer());
+    }
+  }
+  var zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+
+  // Téléchargement local
+  var dlUrl = URL.createObjectURL(zipBlob);
+  var a = document.createElement('a');
+  a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
+
+  // Envoi fiche par email via GET (contourne CORS)
+  btn.innerHTML = '📤 Envoi par email en cours…';
+  try {
+    var ficheEncodee = encodeURIComponent(lines.join('\n'));
+    var nomEncode = encodeURIComponent(folderName);
+    var url = 'https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec'
+      + '?filename=' + nomEncode
+      + '&fiche=' + ficheEncodee;
+
+    var img = new Image();
+    img.src = url;
+  } catch(err) {}
+
+  setTimeout(function() {
+    btn.disabled = false;
+    btn.innerHTML = '📦 Générer &amp; Télécharger le dossier ZIP';
+    goStep(6);
+  }, 3000);
+}
+
+function resetForm() {
+  fileStore = { 'photo-etiquette': [], 'doc-cg': [], 'doc-douane': [] };
+  document.querySelectorAll('input[type=text],input[type=email],input[type=tel],input[type=number],select,textarea').forEach(function(el) { el.value = ''; });
+  document.querySelectorAll('input[type=checkbox]').forEach(function(el) { el.checked = false; });
+  document.querySelectorAll('.file-list').forEach(function(el) { el.innerHTML = ''; });
+  setType('particulier');
+  currentStep = 1;
+  goStep(1);
+}
+</script>
+</body>
+</html>
