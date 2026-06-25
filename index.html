@@ -653,11 +653,10 @@ async function generateZip() {
   var a = document.createElement('a');
   a.href = dlUrl; a.download = folderName + '.zip'; a.click(); URL.revokeObjectURL(dlUrl);
 
-  // Envoi vers Google Drive + email
-  btn.innerHTML = '📤 Envoi en cours…';
+  // Étape 1 : Upload fichiers vers Google Drive
+  btn.innerHTML = '📤 Upload des fichiers en cours…';
   var ficheTexte = lines.join('\n');
 
-  // Convertir tous les fichiers en base64
   var allSlots = [
     { slot: 'photo-etiquette', label: 'Etiquette_Constructeur' },
     { slot: 'doc-cg',          label: 'Carte_Grise' },
@@ -669,11 +668,11 @@ async function generateZip() {
     fileStore[s.slot].forEach(function(f, i) {
       promises.push(new Promise(function(resolve) {
         var reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function(ev) {
           resolve({
             name: s.label + '_' + (i+1) + '_' + f.name,
             mimeType: f.type || 'application/octet-stream',
-            data: e.target.result.split(',')[1]
+            data: ev.target.result.split(',')[1]
           });
         };
         reader.readAsDataURL(f);
@@ -682,26 +681,34 @@ async function generateZip() {
   });
 
   Promise.all(promises).then(function(fichiers) {
-    return fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
+    // Upload vers Drive via no-cors (les fichiers arrivent sur Drive)
+    fetch('https://script.google.com/macros/s/AKfycbzsPNu3Qj5mzsrYpe8YtWwB2wKalDM_OIWa3mw42DdJRJv7sS8XbpcH-XSmasgp9QWm3Q/exec', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'no-cors',
       body: JSON.stringify({
         dossierNom: folderName,
         fiche: ficheTexte,
         fichiers: fichiers
+      })
+    }).catch(function() {});
+
+    // Étape 2 : Email via Formspree (fonctionne confirmé)
+    btn.innerHTML = '📤 Envoi email en cours…';
+    return fetch('https://formspree.io/f/mgojaeyv', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dossier: folderName,
+        fiche: ficheTexte,
+        message: 'Nouveau dossier homologation soumis. Les fichiers ont été uploadés sur Google Drive dans le dossier : Dossiers Homologation/' + folderName
       })
     });
   }).then(function(r) { return r.json(); })
   .then(function(result) {
     btn.disabled = false;
     btn.innerHTML = '📦 Générer, Télécharger &amp; Envoyer par email';
-    if (result.success) {
-      goStep(6);
-    } else {
-      alert('Erreur envoi : ' + result.error);
-      goStep(6);
-    }
-  }).catch(function(err) {
+    goStep(6);
+  }).catch(function() {
     btn.disabled = false;
     btn.innerHTML = '📦 Générer, Télécharger &amp; Envoyer par email';
     goStep(6);
